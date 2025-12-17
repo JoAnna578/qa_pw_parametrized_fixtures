@@ -3,7 +3,6 @@ import { generateNewUserData } from '../../src/common/testData/generateNewUserDa
 import { generateNewArticleData } from '../../src/common/testData/generateNewArticleData';
 import { signUpUser } from '../../src/ui/actions/auth/signUpUser';
 
-// Parametry: liczba artykułów do utworzenia przez każdego użytkownika
 const testParameters = [
   { articlesPerUser: 1 },
   { articlesPerUser: 2 },
@@ -21,46 +20,63 @@ test.describe('Your feeds - three users', () => {
   });
 
   testParameters.forEach(({ articlesPerUser }) => {
-    test(`Verify your feeds shows articles when each user creates ${articlesPerUser} articles`, async ({
+    test(`Verify Your Feed shows articles when each user creates ${articlesPerUser} articles`, async ({
       page,
       homePage,
+      browserContext,
     }) => {
-      // Każdy użytkownik tworzy artykuły
+      const userPages = [];
+
+      // Każdy użytkownik tworzy artykuły w oddzielnym kontekście
       for (let user of users) {
-        await signUpUser(page, user);
+        const userPage = await browserContext.newPage();
+        userPages.push(userPage);
+        await signUpUser(userPage, user);
 
         for (let i = 0; i < articlesPerUser; i++) {
           const article = generateNewArticleData(null, 2); // np. 2 tagi
-          await page.goto('/editor');
-          await page.fill('[placeholder="Article Title"]', article.title);
-          await page.fill(
+          await userPage.goto('/editor');
+          await userPage.fill('[placeholder="Article Title"]', article.title);
+          await userPage.fill(
             '[placeholder="What\'s this article about?"]',
             article.description,
           );
-          await page.fill(
+          await userPage.fill(
             '[placeholder="Write your article (in markdown)"]',
             article.text,
           );
-          await page.fill('[placeholder="Enter tags"]', article.tags.join(' '));
-          await page.click('text=Publish Article');
+          await userPage.fill(
+            '[placeholder="Enter tags"]',
+            article.tags.join(' '),
+          );
+          await userPage.click('text=Publish Article');
         }
 
-        await page.goto('/'); // wracamy do głównej strony po każdym użytkowniku
+        await userPage.close(); // zamykamy kontekst po stworzeniu artykułów
       }
 
-      // Logujemy pierwszego użytkownika, aby sprawdzić "Your Feed"
-      await signUpUser(page, users[0]);
+      // Logujemy pierwszego użytkownika w osobnym kontekście
+      const feedPage = await browserContext.newPage();
+      await signUpUser(feedPage, users[0]);
+
+      // First user follows the other two
+      for (let i = 1; i < users.length; i++) {
+        await homePage.goToUserProfile(users[i].username);
+        await homePage.clickFollowButton();
+      }
+
       await homePage.clickYourFeedTab();
 
       // Sprawdzamy, że artykuły od pozostałych 2 użytkowników są widoczne
       for (let i = 1; i < users.length; i++) {
-        // Tutaj możesz dopasować assert do tytułów artykułów, np. viewArticlePage.assertArticleTitleIsVisible
-        // Jeśli tytuły są losowe, możesz zamiast tego sprawdzić obecność tagów lub username autora
-        // Przykładowy placeholder:
-        console.log(
-          `Verify articles from user: ${users[i].username} are visible`,
-        );
+        for (let j = 0; j < articlesPerUser; j++) {
+          // Można sprawdzić tytuł artykułu lub autora
+          // Jeśli tytuły są losowe, najlepiej sprawdzić autora
+          await homePage.assertArticleAuthorIsVisible(users[i].username);
+        }
       }
+
+      await feedPage.close();
     });
   });
 });
