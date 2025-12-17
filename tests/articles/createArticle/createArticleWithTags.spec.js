@@ -8,12 +8,12 @@ const testParameters = [
   { tagsNumber: 10, testNameEnding: 'ten tags' },
 ];
 
-testParameters.forEach(({ tagsNumber, testNameEnding }) => {
-  test.describe('Create and article with tags', () => {
-    test.beforeEach(async ({ page, user }) => {
-      await signUpUser(page, user);
-    });
+test.describe('Create an article with tags', () => {
+  test.beforeEach(async ({ page, user }) => {
+    await signUpUser(page, user);
+  });
 
+  testParameters.forEach(({ tagsNumber, testNameEnding }) => {
     test(`Create an article with ${testNameEnding}`, async ({
       homePage,
       createArticlePage,

@@ -4,6 +4,7 @@ import {
   INVALID_EMAIL_MESSAGE,
   EMPTY_PASSWORD_MESSAGE,
 } from '../../src/ui/constants/authErrorMessages';
+
 const testParameters = [
   {
     title: 'empty username',
@@ -28,8 +29,8 @@ const testParameters = [
   },
 ];
 
-testParameters.forEach(({ title, username, email, password, message }) => {
-  test.describe('Sign up negative tests', () => {
+test.describe('Sign up negative tests', () => {
+  testParameters.forEach(({ title, username, email, password, message }) => {
     test(`Sign up with ${title}`, async ({ signUpPage }) => {
       await signUpPage.open();
 
